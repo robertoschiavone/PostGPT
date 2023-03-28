@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from FeedForward import FeedForward
-from MultiHeadAttention import MultiHeadAttention
+from Block import Block
 
 
 class BigramLanguageModel(nn.Module):
@@ -13,9 +12,9 @@ class BigramLanguageModel(nn.Module):
         # table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         self.position_embedding_table = nn.Embedding(block_size, n_embed)
-        # 4 heads of 8-dimensional self-attention
-        self.sa_heads = MultiHeadAttention(4, n_embed, n_embed // 4, block_size)
-        self.ffwd = FeedForward(n_embed)
+        self.blocks = nn.Sequential(Block(n_embed, n_head=4, block_size=block_size),
+                                    Block(n_embed, n_head=4, block_size=block_size),
+                                    Block(n_embed, n_head=4, block_size=block_size))
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
         self.block_size = block_size
@@ -30,8 +29,7 @@ class BigramLanguageModel(nn.Module):
             torch.arange(T, device=self.device)
         )  # (T, C)
         x = tok_emb + pos_emb  # (B, T, C)
-        x = self.sa_heads(x)  # (B, T, C)
-        x = self.ffwd(x)  # (B, T, C)
+        x = self.blocks(x)  # (B, T, C)
         logits = self.lm_head(x)  # (B, T, vocab_size)
 
         if targets is None:

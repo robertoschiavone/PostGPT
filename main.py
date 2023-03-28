@@ -78,11 +78,14 @@ if __name__ == "__main__":
     # create a PyTorch optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
+    # created once at th beginning of training
+    scaler = torch.cuda.amp.GradScaler()
+
     for step in range(max_steps):
         # every once in a while evaluate the loss on train and val sets
         if step % eval_interval == 0:
-            losses = estimate_loss(model, eval_iters, train_data, val_data, block_size,
-                                   batch_size, device)
+            losses = estimate_loss(model, eval_iters, train_data, val_data,
+                                   block_size, batch_size, device)
             print(f"Step {step}: train loss {losses['train']:.4f}, "
                   f"val loss {losses['val']:.4f}")
 
@@ -90,11 +93,25 @@ if __name__ == "__main__":
         xb, yb = get_batch("train", train_data, val_data, block_size, batch_size,
                            device)
 
-        # evaluate the loss
-        _, loss = model(xb, yb)
         optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        optimizer.step()
+
+        # cast operations to mixed precision
+        with torch.cuda.amp.autocast():
+            _, loss = model(xb, yb)
+
+        # scale the loss and create scaled gradients
+        scaler.scale(loss).backward()
+
+        # unscale gradients
+        scaler.step(optimizer)
+
+        # update scaler for next iteration
+        scaler.update()
+
+    losses = estimate_loss(model, eval_iters, train_data, val_data, block_size,
+                           batch_size, device)
+    print(f"Step {max_steps}: train loss {losses['train']:.4f}, "
+          f"val loss {losses['val']:.4f}")
 
     # generate from model
     context = torch.zeros((1, 1), dtype=torch.long, device=device)

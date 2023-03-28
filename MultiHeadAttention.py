@@ -10,8 +10,10 @@ class MultiHeadAttention(nn.Module):
         super().__init__()
         heads = [Head(n_embed, head_size, block_size) for _ in range(num_heads)]
         self.heads = nn.ModuleList(heads)
+        self.projection = nn.Linear(n_embed, n_embed)
 
     def forward(self, x):
         x = torch.cat([h(x) for h in self.heads], dim=-1)
+        x = self.projection(x)
 
         return x
