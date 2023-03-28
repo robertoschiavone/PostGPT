@@ -93,3 +93,21 @@ if __name__ == "__main__":
 
     print(decode(model.generate(torch.zeros((1, 1), dtype=torch.long),
                                 max_new_tokens=100)[0].tolist(), itos))
+
+    # create a PyTorch optimizer
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+
+    batch_size = 32
+    for steps in range(10_000):
+        # sample a batch of data
+        xb, yb = get_batch("train", train_data, val_data, block_size, batch_size)
+
+        # evaluate the loss
+        logits, loss = model(xb, yb)
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
+
+    print(loss.item())
+    print(decode(model.generate(torch.zeros((1, 1), dtype=torch.long),
+                                max_new_tokens=100)[0].tolist(), itos))
