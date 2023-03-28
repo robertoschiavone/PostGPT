@@ -8,11 +8,11 @@ from MultiHeadAttention import MultiHeadAttention
 class Block(nn.Module):
     # n_embed: embedding dimension
     # n_head: the number of heads we'd like
-    def __init__(self, n_embed, n_head, block_size):
+    def __init__(self, n_embed, n_head, block_size, dropout):
         super().__init__()
         head_size = n_embed // n_head
-        self.sa = MultiHeadAttention(n_head, n_embed, head_size, block_size)
-        self.ffwd = FeedForward(n_embed)
+        self.sa = MultiHeadAttention(n_head, n_embed, head_size, block_size, dropout)
+        self.ffwd = FeedForward(n_embed, dropout)
         self.ln1 = nn.LayerNorm(n_embed)
         self.ln2 = nn.LayerNorm(n_embed)
 

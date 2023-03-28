@@ -5,12 +5,14 @@ import torch.nn.functional as F
 
 # one head of self-attention
 class Head(nn.Module):
-    def __init__(self, n_embed, head_size, block_size):
+    def __init__(self, n_embed, head_size, block_size, dropout):
         super().__init__()
         self.key = nn.Linear(n_embed, head_size, bias=False)
         self.query = nn.Linear(n_embed, head_size, bias=False)
         self.value = nn.Linear(n_embed, head_size, bias=False)
         self.register_buffer("tril", torch.tril(torch.ones(block_size, block_size)))
+
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         B, T, C = x.shape
@@ -20,6 +22,7 @@ class Head(nn.Module):
         wei = q @ k.transpose(-2, -1) * C ** -0.5  # (B, T, C) @ (B, C, T) -> (B, T, T)
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float("-inf"))  # (B, T, T)
         wei = F.softmax(wei, dim=-1)  # (B, T, T)
+        wei = self.dropout(wei)
         # perform the weighted aggregation of the values
         x = self.value(x)  # (B, T, C)
         x = wei @ x  # (B, T, T) @ (B, T, C) -> (B, T, C)

@@ -44,14 +44,17 @@ def get_batch(split, train_data, val_data, block_size, batch_size, device):
 
 if __name__ == "__main__":
     # hyperparameters
-    batch_size = 32  # how many independent sequence will be processed in parallel
-    block_size = 8  # what is the maximum context length for predictions
+    batch_size = 64  # how many independent sequence will be processed in parallel
+    block_size = 256  # what is the maximum context length for predictions
     max_steps = 5_000
     eval_interval = 500
-    learning_rate = 1e-3
+    learning_rate = 3e-4
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     eval_iters = 200
-    n_embed = 32
+    n_embed = 384
+    n_head = 6
+    n_layer = 6
+    dropout = 0.2
 
     torch.manual_seed(1337)
 
@@ -72,8 +75,10 @@ if __name__ == "__main__":
     train_data = data[:n]
     val_data = data[n:]
 
-    model = BigramLanguageModel(vocab_size, n_embed, block_size, device)
+    model = BigramLanguageModel(vocab_size, n_embed, block_size, n_head, n_layer,
+                                dropout, device)
     model.to(device)
+    print(f"{sum(p.numel() for p in model.parameters()) / 1e6}M parameters")
 
     # create a PyTorch optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
@@ -115,4 +120,10 @@ if __name__ == "__main__":
 
     # generate from model
     context = torch.zeros((1, 1), dtype=torch.long, device=device)
-    print(decode(model.generate(context, max_new_tokens=500)[0].tolist(), itos))
+    tokens = model.generate(context, max_new_tokens=500)[0].tolist()
+    print(decode(tokens, itos))
+
+    with open("more.txt", "w") as f:
+        context = torch.zeros((1, 1), dtype=torch.long, device=device)
+        tokens = model.generate(context, max_new_tokens=10_000)[0].tolist()
+        f.write(decode(tokens, itos))
