@@ -46,9 +46,9 @@ if __name__ == "__main__":
     # hyperparameters
     batch_size = 32  # how many independent sequence will be processed in parallel
     block_size = 8  # what is the maximum context length for predictions
-    max_steps = 3_000
-    eval_interval = 300
-    learning_rate = 1e-2
+    max_steps = 5_000
+    eval_interval = 500
+    learning_rate = 1e-3
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     eval_iters = 200
     n_embed = 32
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     train_data = data[:n]
     val_data = data[n:]
 
-    model = BigramLanguageModel(vocab_size, n_embed)
+    model = BigramLanguageModel(vocab_size, n_embed, block_size, device)
     model.to(device)
 
     # create a PyTorch optimizer
