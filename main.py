@@ -1,5 +1,7 @@
 import torch
 
+from BigramLanguageModel import BigramLanguageModel
+
 
 # take a string, output a list of integers
 def encode(s, stoi):
@@ -81,3 +83,13 @@ if __name__ == "__main__":
             context = xb[b, :t + 1]
             target = yb[b, t]
             print(f"When input is {context}, target is {target}")
+
+    print(xb)  # input to the transformer
+
+    model = BigramLanguageModel(vocab_size)
+    logits, loss = model(xb, yb)
+    print(logits.shape)
+    print(loss)
+
+    print(decode(model.generate(torch.zeros((1, 1), dtype=torch.long),
+                                max_new_tokens=100)[0].tolist(), itos))
